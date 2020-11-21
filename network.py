@@ -56,7 +56,6 @@ class network:
         
     def runSim(self):
         for x in range(self.cycles):
-            print("Cycle ",x)
             self.pulse(x)
             
     def initRT(self):
