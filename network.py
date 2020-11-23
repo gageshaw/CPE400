@@ -2,14 +2,34 @@ import numpy as np
 import random as rand
 import sys
 
+numNodes = 30
 pFailMax = 1000
+cycles = 200
+sendFreq = 4
 
+def runSim(iterations):
+    timeArr = np.zeros(iterations)
+    lossArr = np.zeros(iterations)
+
+    for x in range(iterations): 
+        print("running timesim: ",x+1)
+        n = network(numNodes,cycles,sendFreq)
+        timeArr[x] = n.runPartialSim()
+        
+    for x in range(iterations): 
+        print("running lossim: ",x+1)
+        n = network(numNodes,cycles,sendFreq,time=False)
+        lossArr = n.runPartialSim()
+        
+    aveTimeTp = np.mean(timeArr)
+    aveLossTp = np.mean(lossArr)
+    print("Average throughput using time as cost: ",aveTimeTp)
+    print("Average throughput using unreliability as cost: ", aveLossTp)
 
 class network:
+  
     
-    
-    
-    def __init__(self, numNodes, cycles, sendFreq):
+    def __init__(self, numNodes, cycles, sendFreq, time=True):
         self.numNodes = numNodes
         self.cycles = cycles
         self.timeCounter = 0
@@ -18,59 +38,58 @@ class network:
         self.failedNodes = np.empty(0)
         self.sendFreq = sendFreq
         
-        print("building nodes")
         #create nodeArr by filling first entry
         pFail = rand.randrange(pFailMax)
-        timeCost = rand.randrange(10)
-        self.nodeArr = np.array([node(0, pFail, np.array([[1,timeCost], [2,timeCost]]), timeCost,numNodes, self)])
+        timeCost = rand.randrange(1,10)
         
+        if(time):
+            self.nodeArr = np.array([node(0, pFail, np.array([[1,timeCost], [2,timeCost]]), timeCost,numNodes, self)])
+        else:
+            self.nodeArr = np.array([node(0, pFail, np.array([[1,timeCost], [2,timeCost]]), timeCost,numNodes, self,time = False)])
+            
         #fill nodeArr -> n=numNodes
         for x in range(1,self.numNodes):
             #create random fail probability and time cost
             pFail = rand.randrange(pFailMax)
-            timeCost = rand.randrange(10)
+            timeCost = rand.randrange(1,10)
             
+
             #generate two links != ID
             links = np.array([[self.numNodes,timeCost],[self.numNodes,timeCost]])
             linkGen = rand.randint(0, numNodes-1)
             for y in range(2):
-                while(linkGen == x or np.isin(linkGen,links)):
+                while(linkGen == x or np.isin(linkGen,links[:,0])):
                     linkGen = rand.randint(0,numNodes-1)
                 links[y][0] = linkGen
             
             #construct new node and add to nodeArr
-            self.nodeArr = np.append(self.nodeArr, node(x, pFail, links, timeCost, numNodes, self))
+            if(time):
+                self.nodeArr = np.append(self.nodeArr, node(x, pFail, links, timeCost, numNodes, self))
+            else:
+                 self.nodeArr = np.append(self.nodeArr, node(x, pFail, links, timeCost, numNodes, self,time = False))
         
         #initialize bidirectional links
-        print("initializing links")
         for x in range(self.numNodes):
             self.nodeArr[x].linkUp()
             
         #initialize routing table
-        print("initializing rt")
         self.initRT()
         
-        #run simulation
-        self.runSim()
-        print("Throughput: ", self.tp, "\nDistance Vectors Sent: ",self.DistVecCounter,"\nFailed Nodes:\n",self.failedNodes)
         
-    def runSim(self):
+    def runPartialSim(self):
         for x in range(self.cycles):
             self.pulse(x)
+        return self.tp
             
     def initRT(self):
         for x in range(self.numNodes):
             self.nodeArr[x].initRT()
         for x in range(self.numNodes):
-            self.nodeArr[x].updateRT()
+            self.nodeArr[x].updateRTinit()
             
     def pulse(self, counter):
         for x in range(self.numNodes):
             self.nodeArr[x].pulseRecieve(counter)
-        
-    def printNodes(self):
-        for x in range(self.numNodes):
-            self.nodeArr[x].pNode()
     
     def incrementTp(self):
         self.tp+=1
@@ -82,13 +101,14 @@ class network:
 #==================        NODE CLASS          ===========================
 class node:
 
-    def __init__(self, ID, pFail, links, timeCost, numNodes, nw):
+    def __init__(self, ID, pFail, links, timeCost, numNodes, nw, time = True):
         self.ID = ID
         self.on = True
         self.distVecToSend = False
         self.pFail = pFail
         self.links = links
         self.timeCost = timeCost
+        self.time = time
         self.rTable = np.full((numNodes,numNodes,2), float('inf'))
         for (i,j,k),val in np.ndenumerate(self.rTable):
             if(i==self.ID and j==self.ID):
@@ -103,8 +123,14 @@ class node:
             self.on = False
             self.nw.failedNodes = np.append(self.nw.failedNodes, self.ID)
             for i in range(self.nw.numNodes):
-                self.rTable[self.ID][i] = np.array([float('inf'),float('inf')])
-            self.sendDistVec()
+                for j,val1 in enumerate(self.nw.nodeArr[i].rTable):
+                    for k,val2 in enumerate(val1):
+                        if(val2[0]==self.ID or k==self.ID):
+                            self.nw.nodeArr[i].rTable[j][k] = np.array([float('inf'),float('inf')])
+                    
+                self.nw.nodeArr[i].updateRT()
+                self.nw.nodeArr[i].distVecToSend = True
+            
         if(self.on):
             #generate new packet every sendFreq cycles
             if(cycles%self.nw.sendFreq==0):
@@ -112,24 +138,24 @@ class node:
                 while(newPac == self.ID):
                     newPac = rand.randrange(self.nw.numNodes)
                 self.queue = np.append(self.queue, newPac)
-                
-            if(self.distVecToSend):
-                self.sendDistVec()
-            elif(self.queue.size > 0):
-                self.sendPac()
+            if(cycles % self.timeCost == 0):
+                if(self.distVecToSend):
+                    self.sendDistVec()
+                    self.distVecToSend = False
+                elif(self.queue.size > 0):
+                    self.sendPac()
             
         
-            
-            
-    #===========================  Revise infinity exception for this func =======================================
-    def sendPac(self):
+        def sendPac(self):
         dest = int(self.queue[0])
         self.queue = np.delete(self.queue, [0])
         #find next hop for packet
-        nextHop = int(self.rTable[self.ID][dest][0])
-        if(nextHop != float('inf')):
-            #place packet in nextHop's queue
-            self.nw.nodeArr[nextHop].queue = np.append(self.nw.nodeArr[nextHop].queue,dest)
+        if(dest != float('inf')):
+            nextHop = self.rTable[self.ID][dest][0]
+            if(nextHop != float('inf')):
+                nextHop = int(nextHop)
+                #place packet in nextHop's queue
+                self.nw.nodeArr[nextHop].queue = np.append(self.nw.nodeArr[nextHop].queue,dest)
 
     def recievePac(self):
         recievedPackets = np.where(self.queue == self.ID)
@@ -143,29 +169,34 @@ class node:
     def linkUp(self):
         #append nodes ID to neighbors link arrays
         for x in range(2):
+            #print(self.links[x][0])
             neighborLinks = self.nw.nodeArr[self.links[x][0]].links 
-           
-            timeCostN = self.nw.nodeArr[self.links[x][0]].timeCost
+            if(self.time):
+                timeCostN = self.nw.nodeArr[self.links[x][0]].timeCost
+                timeCostU = self.timeCost
+            else:
+                timeCostN = pFailMax - self.nw.nodeArr[self.links[x][0]].pFail
+                timeCostU = pFailMax - self.pFail
+                
             #check if link is already included 
             if(not np.isin(self.ID,neighborLinks[:,0])):
-                if(timeCostN > self.timeCost):
+                if(timeCostN > timeCostU):
                     self.nw.nodeArr[self.links[x][0]].links  = np.append(neighborLinks, [[self.ID,timeCostN]],axis=0)
                     self.links[x][1] = timeCostN
                 else:
-                    self.nw.nodeArr[self.links[x][0]].links  = np.append(neighborLinks, [[self.ID,self.timeCost]],axis=0)
+                    self.nw.nodeArr[self.links[x][0]].links  = np.append(neighborLinks, [[self.ID,timeCostU]],axis=0)
                                     
             else:
-                if(timeCostN > self.timeCost):
+                if(timeCostN > timeCostU):
                     self.links[x][1] = timeCostN
                 else:
                     linkLoc = np.where(neighborLinks[:,0]==self.ID)
                     linkLoc = linkLoc[0][0]
-                    self.nw.nodeArr[self.links[x][0]].links[linkLoc][1] = self.timeCost
+                    self.nw.nodeArr[self.links[x][0]].links[linkLoc][1] = timeCostU
      
     #update routing tables with bellman/ford eqn
     def updateRT(self):
         update = False
-        
         #compare nTable with rTable and update rTable
         for i,val1 in enumerate(self.rTable[self.ID]):
             costArr = np.zeros((self.nw.numNodes,2))
@@ -178,7 +209,9 @@ class node:
                 minIndex = np.where(costArr[:,1]==minCost)[0][0]
                 self.rTable[self.ID][i] = costArr[minIndex]
         if(update):
-            distVecToSend = True
+            self.distVecToSend = True
+        
+            
             
     def updateRTinit(self):
         update = False
@@ -216,14 +249,5 @@ class node:
         for i,val in enumerate(self.links):
             self.nw.nodeArr[val[0]].rTable[self.ID]= self.rTable[self.ID]
             self.nw.nodeArr[val[0]].updateRTinit()
-        
-    #print node info
-    def pNode(self):
-        print("I'm node: ", self.ID)
-        print("pFail: ", self.pFail)
-        print("links: ", self.links)
-        print("timeCost: ", self.timeCost)
-        print("rTable:\n", self.rTable)
-        #print("queue: ", self.queue)
-   
+
 
