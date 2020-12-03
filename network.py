@@ -146,7 +146,7 @@ class node:
                     self.sendPac()
             
         
-        def sendPac(self):
+    def sendPac(self):
         dest = int(self.queue[0])
         self.queue = np.delete(self.queue, [0])
         #find next hop for packet
@@ -251,3 +251,4 @@ class node:
             self.nw.nodeArr[val[0]].updateRTinit()
 
 
+                 
