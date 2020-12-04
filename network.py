@@ -2,8 +2,8 @@ import numpy as np
 import random as rand
 import sys
 
-numNodes = 30
-pFailMax = 1000
+numNodes = 6
+pFailMax = 200
 cycles = 200
 sendFreq = 4
 
@@ -15,11 +15,13 @@ def runSim(iterations):
         print("running timesim: ",x+1)
         n = network(numNodes,cycles,sendFreq)
         timeArr[x] = n.runPartialSim()
+    print (timeArr)
         
     for x in range(iterations): 
         print("running lossim: ",x+1)
         n = network(numNodes,cycles,sendFreq,time=False)
-        lossArr = n.runPartialSim()
+        lossArr[x] = n.runPartialSim()
+    print(lossArr)
         
     aveTimeTp = np.mean(timeArr)
     aveLossTp = np.mean(lossArr)
@@ -27,7 +29,7 @@ def runSim(iterations):
     print("Average throughput using unreliability as cost: ", aveLossTp)
 
 class network:
-  
+
     
     def __init__(self, numNodes, cycles, sendFreq, time=True):
         self.numNodes = numNodes
@@ -74,8 +76,14 @@ class network:
             
         #initialize routing table
         self.initRT()
+        #self.printRoutingTables()
         
-        
+ 
+    def printRoutingTables(self):
+        for x in range(self.numNodes):
+            print("DV: ",x)
+            print(self.nodeArr[x].rTable[x])
+
     def runPartialSim(self):
         for x in range(self.cycles):
             self.pulse(x)
@@ -120,6 +128,7 @@ class node:
         self.recievePac()
         #shut off router
         if(self.pFail == cycles):
+            self.nw.printRoutingTables()
             self.on = False
             self.nw.failedNodes = np.append(self.nw.failedNodes, self.ID)
             for i in range(self.nw.numNodes):
@@ -210,8 +219,9 @@ class node:
                 self.rTable[self.ID][i] = costArr[minIndex]
         if(update):
             self.distVecToSend = True
-        
-            
+            # print("\nUpdate Table")
+            # print(self.rTable)
+    
             
     def updateRTinit(self):
         update = False
@@ -235,6 +245,8 @@ class node:
         for i,val in enumerate(self.links):
             self.rTable[self.ID][val[0]] = val
         self.sendDistVecInit()
+        # print("\nTable")
+        # print(self.rTable)
             
         
             
@@ -251,4 +263,3 @@ class node:
             self.nw.nodeArr[val[0]].updateRTinit()
 
 
-                 
