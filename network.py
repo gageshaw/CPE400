@@ -2,30 +2,40 @@ import numpy as np
 import random as rand
 import sys
 
-numNodes = 6
+numNodes = 30
 pFailMax = 200
-cycles = 200
+cycles = 400
 sendFreq = 4
 
 def runSim(iterations):
     timeArr = np.zeros(iterations)
     lossArr = np.zeros(iterations)
+    dvCountArr_loss = np.zeros(iterations)
+    dvCountArr_time = np.zeros(iterations)
 
     for x in range(iterations): 
         print("running timesim: ",x+1)
         n = network(numNodes,cycles,sendFreq)
         timeArr[x] = n.runPartialSim()
+        dvCountArr_time[x] = n.DistVecCounter
     print (timeArr)
+    print(dvCountArr_time)
         
     for x in range(iterations): 
         print("running lossim: ",x+1)
         n = network(numNodes,cycles,sendFreq,time=False)
         lossArr[x] = n.runPartialSim()
+        dvCountArr_loss[x] = n.DistVecCounter
     print(lossArr)
+    print(dvCountArr_loss)
         
     aveTimeTp = np.mean(timeArr)
     aveLossTp = np.mean(lossArr)
+    aveDVcounter_loss = np.mean(dvCountArr_loss)
+    aveDVcounter_time = np.mean(dvCountArr_time)
+    print("Average DV counter using time as cost: ",aveDVcounter_time)
     print("Average throughput using time as cost: ",aveTimeTp)
+    print("Average DV counter using unreliability as cost: ",aveDVcounter_loss)
     print("Average throughput using unreliability as cost: ", aveLossTp)
 
 class network:
@@ -76,7 +86,6 @@ class network:
             
         #initialize routing table
         self.initRT()
-        #self.printRoutingTables()
         
  
     def printRoutingTables(self):
@@ -219,9 +228,7 @@ class node:
                 self.rTable[self.ID][i] = costArr[minIndex]
         if(update):
             self.distVecToSend = True
-            # print("\nUpdate Table")
-            # print(self.rTable)
-    
+ 
             
     def updateRTinit(self):
         update = False
@@ -245,11 +252,7 @@ class node:
         for i,val in enumerate(self.links):
             self.rTable[self.ID][val[0]] = val
         self.sendDistVecInit()
-        # print("\nTable")
-        # print(self.rTable)
-            
         
-            
     #send dist vec to neighbors routing table
     def sendDistVec(self):
         for i,val in enumerate(self.links):
