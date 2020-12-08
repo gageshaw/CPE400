@@ -14,6 +14,8 @@ Specify the number of iterations, number of nodes, cycles, maxNodeLifetime, and 
 
     *** WARNING: the more iterations and nodes the longer the simualtion will take ***
 
+    Github link: https://github.com/gageshaw/CPE400
+
 THE NETWORK:
 
 Class network:
