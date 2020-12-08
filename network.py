@@ -25,9 +25,9 @@ def runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printRoutingTable=F
     aveLossTp = np.mean(lossArr)
     aveDVcounter_loss = np.mean(dvCountArr_loss)
     aveDVcounter_time = np.mean(dvCountArr_time)
-    print("Average DV counter using time as cost: ", aveDVcounter_time)
+
     print("Average throughput using time as cost: ", aveTimeTp)
-    print("Average DV counter using unreliability as cost: ", aveDVcounter_loss)
+
     print("Average throughput using unreliability as cost: ", aveLossTp)
 
 
