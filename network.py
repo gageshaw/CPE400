@@ -5,14 +5,14 @@ import sys
 
 
 
-def runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printDistVec=False):
+def runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printRoutingTable=False):
     timeArr = np.zeros(iterations)
     lossArr = np.zeros(iterations)
     dvCountArr_loss = np.zeros(iterations)
     dvCountArr_time = np.zeros(iterations)
 
     for x in range(iterations):
-        n = network(numNodes, cycles, pFailMax, sendFreq, printDistVec)
+        n = network(numNodes, cycles, pFailMax, sendFreq, printRoutingTable)
         timeArr[x] = n.runPartialSim()
         dvCountArr_time[x] = n.DistVecCounter
 
@@ -35,7 +35,7 @@ def runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printDistVec=False)
 
 class network:
 
-    def __init__(self, numNodes, cycles, pFailMax, sendFreq, printDistVec, time=True):
+    def __init__(self, numNodes, cycles, pFailMax, sendFreq, printRoutingTable, time=True):
         self.numNodes = numNodes
         self.cycles = cycles
         self.timeCounter = 0
@@ -50,10 +50,10 @@ class network:
 
         if(time):
             self.nodeArr = np.array([node(0, pFail, pFailMax, np.array(
-                [[1, timeCost], [2, timeCost]]), timeCost, numNodes, printDistVec, self)])
+                [[1, timeCost], [2, timeCost]]), timeCost, numNodes, printRoutingTable, self)])
         else:
             self.nodeArr = np.array([node(0, pFail, pFailMax, np.array(
-                [[1, timeCost], [2, timeCost]]), timeCost, numNodes, printDistVec, self, time=False)])
+                [[1, timeCost], [2, timeCost]]), timeCost, numNodes, printRoutingTable, self, time=False)])
 
         # fill nodeArr -> n=numNodes
         for x in range(1, self.numNodes):
@@ -73,10 +73,10 @@ class network:
             # construct new node and add to nodeArr
             if(time):
                 self.nodeArr = np.append(self.nodeArr, node(
-                    x, pFail, pFailMax, links, timeCost, numNodes, printDistVec, self))
+                    x, pFail, pFailMax, links, timeCost, numNodes, printRoutingTable, self))
             else:
                 self.nodeArr = np.append(self.nodeArr, node(
-                    x, pFail, pFailMax, links, timeCost, numNodes, printDistVec, self, time=False))
+                    x, pFail, pFailMax, links, timeCost, numNodes, printRoutingTable, self, time=False))
 
         # initialize bidirectional links
         for x in range(self.numNodes):
