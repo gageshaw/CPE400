@@ -1,8 +1,18 @@
 # CPE400: networks class project 
 
 Compiling Instructions:
-Specify the number of iterations, number of nodes, cycles, the pFailMax, and the sendFreq. Also indicate if you would like to see the routing tables.
- -> python3 -c 'import network; network.runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printRoutingTable=False)'
+Specify the number of iterations, number of nodes, cycles, the max node life time, and the sendFreq. Also indicate if you would like to see the routing tables.
+ -> python3 -c 'import network; network.runSim(iterations, numNodes, cycles, max node life time, sendFreq, printRoutingTable=False)'
+
+    -> Example (recommendation):
+        iterations: 100
+        numNodes : 30
+        cycles: 200
+        max node life time: 400
+        sendFreq: 4
+        printRoutingTables: True or False depending if you want to see the routing tables
+
+    *** WARNING: the more iterations and nodes the longer the simualtion will take ***
 
 THE NETWORK:
 
