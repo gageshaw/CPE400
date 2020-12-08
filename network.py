@@ -3,8 +3,6 @@ import random as rand
 import sys
 
 
-
-
 def runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printRoutingTable=False):
     timeArr = np.zeros(iterations)
     lossArr = np.zeros(iterations)
@@ -19,7 +17,7 @@ def runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printRoutingTable=F
     for x in range(iterations):
 
         n = network(numNodes, cycles, pFailMax,
-                    sendFreq, printDistVec, time=False)
+                    sendFreq, printRoutingTable, time=False)
         lossArr[x] = n.runPartialSim()
         dvCountArr_loss[x] = n.DistVecCounter
 
