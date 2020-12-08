@@ -2,9 +2,6 @@ import numpy as np
 import random as rand
 import sys
 
-
-
-
 def runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printRoutingTable=False):
     timeArr = np.zeros(iterations)
     lossArr = np.zeros(iterations)
