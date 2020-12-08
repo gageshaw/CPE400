@@ -3,10 +3,9 @@ import random as rand
 import sys
 
 
-sendFreq = 4
 
 
-def runSim(iterations, numNodes, cycles, pFailMax, printDistVec=False):
+def runSim(iterations, numNodes, cycles, pFailMax, sendFreq, printDistVec=False):
     timeArr = np.zeros(iterations)
     lossArr = np.zeros(iterations)
     dvCountArr_loss = np.zeros(iterations)
